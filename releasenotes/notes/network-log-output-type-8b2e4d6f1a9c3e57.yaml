@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The ``openstack network log create`` command accepts ``--output-type``
+    with the values ``packet_log`` (default) and ``flow_sample`` when the
+    Networking service supports the ``logging-output-type`` extension. The
+    ``network log list --long`` and ``network log show`` output include the
+    ``Output type`` column, and ``network loggable resources list --long``
+    shows the output types supported for each resource type.

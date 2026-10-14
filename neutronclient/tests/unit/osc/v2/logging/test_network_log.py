@@ -37,6 +37,7 @@ CONVERT_MAP = {
     'target': 'target_id',
     'resource': 'resource_id',
     'event': 'event',
+    'output_type': 'output_type',
 }
 
 
@@ -93,6 +94,7 @@ class TestNetworkLog(test_fakes.TestNeutronClientOSCV2):
             'Resource',
             'Type',
             'Event',
+            'Output type',
         )
         self.data = _generate_data()
         self.ordered_headers = (
@@ -101,6 +103,7 @@ class TestNetworkLog(test_fakes.TestNeutronClientOSCV2):
             'Event',
             'ID',
             'Name',
+            'Output type',
             'Project',
             'Resource',
             'Target',
@@ -112,6 +115,7 @@ class TestNetworkLog(test_fakes.TestNeutronClientOSCV2):
             _log['event'],
             _log['id'],
             _log['name'],
+            _log['output_type'],
             _log['project_id'],
             _log['resource_id'],
             _log['target_id'],
@@ -123,6 +127,7 @@ class TestNetworkLog(test_fakes.TestNeutronClientOSCV2):
             'event',
             'id',
             'name',
+            'output_type',
             'project_id',
             'resource_id',
             'target_id',
@@ -171,6 +176,7 @@ class TestCreateNetworkLog(TestNetworkLog):
         target = args.get('target', 'id-target-log')
         resource_type = args.get('resource_type', 'security_group')
         project = args.get('project_id', 'id-my-project')
+        output_type = args.get('output_type')
 
         arglist = [
             name,
@@ -192,6 +198,9 @@ class TestCreateNetworkLog(TestNetworkLog):
             ('resource', target),
             ('resource_type', resource_type),
         ]
+        if output_type is not None:
+            arglist.extend(['--output-type', output_type])
+            verifylist.append(('output_type', output_type))
         return arglist, verifylist
 
     def _test_create_with_all_params(self, args={}):
@@ -264,6 +273,23 @@ class TestCreateNetworkLog(TestNetworkLog):
 
     def test_create_with_all_params_event_all(self):
         self._test_create_with_all_params({'event': 'ALL'})
+
+    def test_create_with_output_type(self):
+        self._test_create_with_all_params({'output_type': 'flow_sample'})
+
+    def test_create_with_output_type_upper_capitalized(self):
+        for output_type in ('FLOW_SAMPLE', 'Packet_Log'):
+            arglist, verifylist = self._set_all_params(
+                {'output_type': output_type})
+            self.assertRaises(
+                testtools.matchers._impl.MismatchError,
+                self.check_parser, self.cmd, arglist, verifylist)
+
+    def test_create_with_invalid_output_type(self):
+        arglist, verifylist = self._set_all_params({'output_type': 'ipfix'})
+        self.assertRaises(
+            utils.ParserException,
+            self.check_parser, self.cmd, arglist, verifylist)
 
     def test_create_with_all_params_except_event(self):
         arglist, verifylist = self._set_all_params({'event': ''})
@@ -712,7 +738,9 @@ class TestLoggableResource(test_fakes.TestNeutronClientOSCV2):
     def setUp(self):
         super(TestLoggableResource, self).setUp()
         self.headers = ('Supported types',)
+        self.long_headers = ('Supported types', 'Supported output types')
         self.data = ('security_group', )
+        self.long_data = ('security_group', ['packet_log', 'flow_sample'])
 
 
 class TestListLoggableResource(TestLoggableResource):
@@ -722,7 +750,9 @@ class TestListLoggableResource(TestLoggableResource):
         self.cmd = network_log.ListLoggableResource(self.app, self.namespace)
 
         loggables = {
-            "loggable_resources": [{"type": "security_group"}]
+            "loggable_resources": [
+                {"type": "security_group",
+                 "output_types": ['packet_log', 'flow_sample']}]
         }
         self.neutronclient.list_network_loggable_resources = mock.Mock(
             return_value=loggables)
@@ -735,8 +765,8 @@ class TestListLoggableResource(TestLoggableResource):
         headers, data = self.cmd.take_action(parsed_args)
 
         self.mocked.assert_called_once_with()
-        self.assertEqual(list(self.headers), headers)
-        self.assertEqual([self.data], list(data))
+        self.assertEqual(list(self.long_headers), headers)
+        self.assertEqual([self.long_data], list(data))
 
     def test_list_with_no_option(self):
         arglist = []

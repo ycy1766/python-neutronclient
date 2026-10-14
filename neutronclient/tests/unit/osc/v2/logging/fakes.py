@@ -75,4 +75,5 @@ class NetworkLog(FakeLogging):
             ('resource_id', None),
             ('resource_type', 'security_group'),
             ('event', 'all'),
+            ('output_type', 'packet_log'),
         ))

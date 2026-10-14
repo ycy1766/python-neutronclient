@@ -39,12 +39,16 @@ _attr_map = (
     ('resource_id', 'Resource', column_util.LIST_LONG_ONLY),
     ('resource_type', 'Type', column_util.LIST_BOTH),
     ('event', 'Event', column_util.LIST_LONG_ONLY),
+    ('output_type', 'Output type', column_util.LIST_LONG_ONLY),
     ('summary', 'Summary', column_util.LIST_SHORT_ONLY),
 )
 
 _attr_map_for_loggable = (
     ('type', 'Supported types', column_util.LIST_BOTH),
+    ('output_types', 'Supported output types', column_util.LIST_LONG_ONLY),
 )
+
+LOG_OUTPUT_TYPES = ['packet_log', 'flow_sample']
 
 NET_LOG = 'network_log'
 
@@ -94,6 +98,8 @@ def _get_common_attrs(client_manager, parsed_args, is_create=True):
                 'port', parsed_args.target)['id']
         if parsed_args.event:
             attrs['event'] = parsed_args.event
+        if parsed_args.output_type:
+            attrs['output_type'] = parsed_args.output_type
     if parsed_args.enable:
         attrs['enabled'] = True
     if parsed_args.disable:
@@ -144,6 +150,16 @@ class CreateNetworkLog(command.ShowOne):
             metavar='<target>',
             help=_('Port (name or ID) for logging. You can control '
                    'for logging target combination with --resource option.'))
+        parser.add_argument(
+            '--output-type',
+            metavar='{packet_log,flow_sample}',
+            choices=LOG_OUTPUT_TYPES,
+            type=nc_utils.convert_to_lowercase,
+            help=_('Output of the network log: packet_log emits one log '
+                   'line per packet (default), flow_sample emits samples of '
+                   'the matched traffic through the backend. The supported '
+                   'outputs are listed by:\n'
+                   '$ openstack network loggable resources list --long'))
         return parser
 
     def take_action(self, parsed_args):
